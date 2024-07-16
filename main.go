@@ -2,6 +2,7 @@
 // Copyright (C) 2024  MAREKOR555, contact: marekor555@interia.pl
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
+// YOU MUST CREDIT ME IF YOU USE THE PROGRAM OR ANY PARTS OF IT
 package main
 
 import (
@@ -101,6 +102,8 @@ func main() {
 	gosh  Copyright (C) 2024  MAREKOR555
 	This program comes with ABSOLUTELY NO WARRANTY.
 	This is free software, and you are welcome to redistribute it
+	YOU MUST CREDIT ME IF YOU USE THE PROGRAM OR ANY PARTS OF IT
+
 `)
 	command := ""
 	reader := bufio.NewReader(os.Stdin)
