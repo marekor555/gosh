@@ -6,10 +6,12 @@ package main
 
 import (
 	"bufio"
+	_ "embed"
 	"fmt"
 	"os"
 	"os/exec"
 	"os/user"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -17,9 +19,13 @@ import (
 	"github.com/fatih/color"
 )
 
+//go:embed .goshrc
+var defaultGoshrc []byte
+
 var (
 	currentDir string
 	err        error
+	aliases    = map[string]string{}
 )
 
 func checkCustom(text string, command string) bool {
@@ -33,6 +39,9 @@ func parseTime(time int) string {
 }
 func runCommand(command string) {
 	cmdSplit := strings.Split(command, " ")
+	for key, value := range aliases {
+		cmdSplit[0] = strings.ReplaceAll(cmdSplit[0], key, value)
+	}
 	cmdRunner := exec.Command(cmdSplit[0], cmdSplit[1:]...)
 	cmdRunner.Dir = currentDir
 	cmdRunner.Stdin = os.Stdin
@@ -45,23 +54,47 @@ func runCommand(command string) {
 }
 func runPipe(command string) {
 	split := strings.Split(command, "|")
-	if len(split) > 2 {
+	if len(split) != 2 {
 		color.Red("don't use | in piping commands elsewhere")
 		return
 	}
 	cmdSplit := strings.Split(strings.TrimSpace(split[0]), " ")
+	for key, value := range aliases {
+		cmdSplit[0] = strings.ReplaceAll(cmdSplit[0], key, value)
+	}
 	pipeSplit := strings.Split(strings.TrimSpace(split[1]), " ")
+	for key, value := range aliases {
+		pipeSplit[0] = strings.ReplaceAll(pipeSplit[0], key, value)
+	}
 	cmdRunner := exec.Command(cmdSplit[0], cmdSplit[1:]...)
 	pipeRunner := exec.Command(pipeSplit[0], pipeSplit[1:]...)
 	pipeRunner.Stdin, err = cmdRunner.StdoutPipe()
-	pipeRunner.Stdout = os.Stdout
 	if err != nil {
 		color.Red("couldn't pipe command")
 		color.Red(err.Error())
+		return
 	}
-	pipeRunner.Start()
-	cmdRunner.Run()
-	pipeRunner.Wait()
+	pipeRunner.Stdout = os.Stdout
+	err = cmdRunner.Start()
+	if err != nil {
+		color.Red("failed to start command")
+		color.Red(err.Error())
+		return
+	}
+	err := pipeRunner.Start()
+	if err != nil {
+		color.Red("failed to start piping command")
+		color.Red(err.Error())
+		return
+	}
+	err = cmdRunner.Wait()
+	if err != nil {
+		color.Red("Main command error: " + err.Error())
+	}
+	err = pipeRunner.Wait()
+	if err != nil {
+		color.Red("Pipe command error: " + err.Error())
+	}
 }
 func main() {
 	color.Yellow(`
@@ -81,13 +114,47 @@ func main() {
 		color.Red("couldn't get current user")
 		color.Red(err.Error())
 	}
+	aliases["cls"] = "clear"
+	aliases["ls"] = "lsd"
+	file, err := os.Open(path.Join(user.HomeDir, ".goshrc"))
+	if err != nil {
+		color.Red("failed to open ~/.goshrc")
+		color.Red(err.Error())
+		color.Red("if config isn't initialzed, click enter to create default ~/.goshrc")
+		reader.ReadString('\n')
+		file.Close()
+		file, err := os.Create(path.Join(user.HomeDir, ".goshrc"))
+		if err != nil {
+			color.Red("failed to create ~/.goshrc")
+			color.Red(err.Error())
+		}
+		defer file.Close()
+		_, err = file.Write(defaultGoshrc)
+		if err != nil {
+			color.Red("failed to write to ~/.goshrc")
+			color.Red(err.Error())
+		}
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		if scanner.Text()[0] == '#' {
+			continue
+		}
+		splitText := strings.Split(scanner.Text(), ">>>")
+		aliases[splitText[0]] = splitText[1]
+	}
 	for {
 	prompt:
 		hi, mi, si := time.Now().Clock()
 		h := parseTime(hi)
 		m := parseTime(mi)
 		s := parseTime(si)
-		fmt.Print(color.CyanString(fmt.Sprintf("%v:%v:%v ", h, m, s)), color.GreenString(user.Username), color.BlueString(" >"), color.MagentaString(">"), color.BlueString("> "))
+		fmt.Print(
+			color.CyanString(fmt.Sprintf("%v:%v:%v ", h, m, s)),
+			color.GreenString(user.Username),
+			color.BlueString(" >"), color.MagentaString(">"), color.BlueString("> "),
+		)
 		command, err = reader.ReadString('\n')
 		if err != nil {
 			color.Red("couldn't get user input:")
