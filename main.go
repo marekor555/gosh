@@ -39,11 +39,10 @@ func parseTime(time int) string {
 	return strconv.Itoa(time)
 }
 func runCommand(command string) {
-	cmdSplit := strings.Split(command, " ")
 	for key, value := range aliases {
-		cmdSplit[0] = strings.ReplaceAll(cmdSplit[0], key, value)
+		command = strings.Replace(command, key, value, 1)
 	}
-	cmdRunner := exec.Command(cmdSplit[0], cmdSplit[1:]...)
+	cmdRunner := exec.Command("sh", "-c", command)
 	cmdRunner.Dir = currentDir
 	cmdRunner.Stdin = os.Stdin
 	cmdRunner.Stdout = os.Stdout
@@ -59,16 +58,16 @@ func runPipe(command string) {
 		color.Red("don't use | in piping commands elsewhere")
 		return
 	}
-	cmdSplit := strings.Split(strings.TrimSpace(split[0]), " ")
+	cmd := split[0]
+	pipe := split[1]
 	for key, value := range aliases {
-		cmdSplit[0] = strings.ReplaceAll(cmdSplit[0], key, value)
+		cmd = strings.Replace(cmd, key, value, 1)
 	}
-	pipeSplit := strings.Split(strings.TrimSpace(split[1]), " ")
 	for key, value := range aliases {
-		pipeSplit[0] = strings.ReplaceAll(pipeSplit[0], key, value)
+		pipe = strings.ReplaceAll(pipe, key, value)
 	}
-	cmdRunner := exec.Command(cmdSplit[0], cmdSplit[1:]...)
-	pipeRunner := exec.Command(pipeSplit[0], pipeSplit[1:]...)
+	cmdRunner := exec.Command("sh", "-c", cmd)
+	pipeRunner := exec.Command("sh", "-c", pipe)
 	pipeRunner.Stdin, err = cmdRunner.StdoutPipe()
 	if err != nil {
 		color.Red("couldn't pipe command")
