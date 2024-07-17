@@ -116,8 +116,6 @@ func main() {
 		color.Red("couldn't get current user")
 		color.Red(err.Error())
 	}
-	aliases["cls"] = "clear"
-	aliases["ls"] = "lsd"
 	file, err := os.Open(path.Join(user.HomeDir, ".goshrc"))
 	if err != nil {
 		color.Red("failed to open ~/.goshrc")
