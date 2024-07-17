@@ -1,6 +1,4 @@
 # use >>> to define alias
 # example:
 # cls>>>clear
-# aliases with spaces not yet supported
-# won't work
 # copyit>>>xclip -selection clipboard
