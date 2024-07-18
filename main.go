@@ -38,6 +38,25 @@ func parseTime(time int) string {
 	}
 	return strconv.Itoa(time)
 }
+func initCmd(command string, args []string) *exec.Cmd {
+	var cmd *exec.Cmd
+	if len(args) == 0 {
+		cmd = exec.Command(command)
+	} else {
+		cmd = exec.Command(command, args...)
+	}
+	cmd.Env = os.Environ()
+	return cmd
+}
+func alias(command string) string {
+	commandSplit := strings.Fields(command)
+	for key, val := range aliases {
+		if commandSplit[0] == key {
+			command = strings.Replace(command, key, val, 1)
+		}
+	}
+	return command
+}
 func parseCmd(command string) (string, []string) {
 	cmd := ""
 	args := []string{}
@@ -62,11 +81,9 @@ func parseCmd(command string) (string, []string) {
 	return cmd, args
 }
 func runCommand(command string) {
+	command = alias(command)
 	cmd, args := parseCmd(command)
-	for key, value := range aliases {
-		cmd = strings.Replace(cmd, key, value, 1)
-	}
-	cmdRunner := exec.Command(cmd, args...)
+	cmdRunner := initCmd(cmd, args)
 	cmdRunner.Dir = currentDir
 	cmdRunner.Stdin = os.Stdin
 	cmdRunner.Stdout = os.Stdout
@@ -82,16 +99,12 @@ func runPipe(command string) {
 		color.Red("don't use | in piping commands elsewhere")
 		return
 	}
+	split[0] = alias(split[0])
+	split[1] = alias(split[1])
 	cmd, cmdArgs := parseCmd(split[0])
 	pipe, pipeArgs := parseCmd(split[1])
-	for key, value := range aliases {
-		cmd = strings.Replace(cmd, key, value, 1)
-	}
-	for key, value := range aliases {
-		pipe = strings.ReplaceAll(pipe, key, value)
-	}
-	cmdRunner := exec.Command(cmd, cmdArgs...)
-	pipeRunner := exec.Command(pipe, pipeArgs...)
+	cmdRunner := initCmd(cmd, cmdArgs)
+	pipeRunner := initCmd(pipe, pipeArgs)
 	cmdRunner.Stderr = os.Stderr
 	pipeRunner.Stderr = os.Stderr
 	pipeRunner.Stdin, err = cmdRunner.StdoutPipe()
