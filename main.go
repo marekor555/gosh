@@ -150,6 +150,9 @@ func main() {
 	YOU MUST CREDIT ME IF YOU USE THE PROGRAM OR ANY PARTS OF IT
 
 `)
+	if runtime.GOOS == "windows" {
+		color.Red("windows isn't the best option, consider using powershell")
+	}
 	command := ""
 	reader := bufio.NewReader(os.Stdin)
 	currentDir, err = os.Getwd()
