@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -27,6 +28,7 @@ var (
 	currentDir string
 	err        error
 	aliases    = map[string]string{}
+	aliasesInt = map[string]string{"clear": "clear -x"}
 )
 
 func checkCustom(text string, command string) bool {
@@ -51,6 +53,11 @@ func initCmd(command string, args []string) *exec.Cmd {
 func alias(command string) string {
 	commandSplit := strings.Fields(command)
 	for key, val := range aliases {
+		if commandSplit[0] == key {
+			command = strings.Replace(command, key, val, 1)
+		}
+	}
+	for key, val := range aliasesInt {
 		if commandSplit[0] == key {
 			command = strings.Replace(command, key, val, 1)
 		}
@@ -233,6 +240,18 @@ func main() {
 			}
 			if checkCustom(command, "exit") {
 				os.Exit(0)
+			}
+			if runtime.GOOS == "windows" {
+				command = alias(command)
+				cmd := exec.Command("cmd", "/c", command)
+				cmd.Stdin = os.Stdin
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				err = cmd.Run()
+				if err != nil {
+					color.Red("Error: " + err.Error())
+				}
+				goto prompt
 			}
 			if strings.Contains(command, "|") {
 				runPipe(command)
