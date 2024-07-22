@@ -73,7 +73,7 @@ func parseCmd(command string) (string, []string) {
 	quotes := false
 	arg := ""
 	for _, c := range argsNP {
-		if c == '"' {
+		if c == '"' || c == '\'' {
 			quotes = !quotes
 			continue
 		}
