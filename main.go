@@ -100,6 +100,22 @@ func runCommand(command string) {
 		color.Red("Error: " + err.Error())
 	}
 }
+func runRedirect(command string) {
+	command = alias(command)
+	cmdSplit := strings.Split(command, ">>")
+	cmd, args := parseCmd(cmdSplit[0])
+	file, err := os.Create(strings.TrimSpace(cmdSplit[1]))
+	if err != nil {
+		color.Red("Error: " + err.Error())
+		return
+	}
+	cmdRunner := initCmd(cmd, args)
+	cmdRunner.Stdout = file
+	err = cmdRunner.Run()
+	if err != nil {
+		color.Red("Error: " + err.Error())
+	}
+}
 func runPipe(command string) {
 	split := strings.Split(command, "|")
 	if len(split) != 2 {
@@ -258,6 +274,8 @@ func main() {
 			}
 			if strings.Contains(command, "|") {
 				runPipe(command)
+			} else if strings.Contains(command, ">>") {
+				runRedirect(command)
 			} else {
 				runCommand(command)
 			}
