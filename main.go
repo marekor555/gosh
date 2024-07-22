@@ -167,7 +167,7 @@ func main() {
 
 `)
 	if runtime.GOOS == "windows" {
-		color.Red("windows isn't the best option, consider using powershell")
+		color.Red("using gosh on windows isn't recommended, consider using powershell")
 	}
 	command := ""
 	reader := bufio.NewReader(os.Stdin)
