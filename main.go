@@ -130,7 +130,7 @@ func runCommand(command string) {
 }
 func runRedirect(command string) {
 	command = alias(command)
-	cmdSplit := strings.Split(command, ">>")
+	cmdSplit := cmdSplit(command, ">>")
 	if len(cmdSplit) != 2 {
 		color.Red("ERROR: more than one >> detected")
 		return
@@ -149,7 +149,7 @@ func runRedirect(command string) {
 	}
 }
 func runPipe(command string) {
-	split := strings.Split(command, "|")
+	split := cmdSplit(command, "|")
 	if len(split) != 2 {
 		color.Red("ERROR: more than one | detected")
 		return
