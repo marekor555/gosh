@@ -64,6 +64,19 @@ func alias(command string) string {
 	}
 	return command
 }
+func checkFor(command string, keyword string) bool {
+	quotes := false
+	cmd := ""
+	for _, c := range command {
+		if c == '"' || c == '\'' {
+			quotes = !quotes
+		}
+		if !quotes {
+			cmd += string(c)
+		}
+	}
+	return strings.Contains(cmd, keyword)
+}
 func parseCmd(command string) (string, []string) {
 	cmd := ""
 	args := []string{}
@@ -103,6 +116,10 @@ func runCommand(command string) {
 func runRedirect(command string) {
 	command = alias(command)
 	cmdSplit := strings.Split(command, ">>")
+	if len(cmdSplit) != 2 {
+		color.Red("ERROR: more than one >> detected")
+		return
+	}
 	cmd, args := parseCmd(cmdSplit[0])
 	file, err := os.Create(strings.TrimSpace(cmdSplit[1]))
 	if err != nil {
@@ -119,7 +136,7 @@ func runRedirect(command string) {
 func runPipe(command string) {
 	split := strings.Split(command, "|")
 	if len(split) != 2 {
-		color.Red("don't use | in piping commands elsewhere")
+		color.Red("ERROR: more than one | detected")
 		return
 	}
 	split[0] = alias(split[0])
@@ -272,9 +289,9 @@ func main() {
 				}
 				goto prompt
 			}
-			if strings.Contains(command, "|") {
+			if checkFor(command, "|") {
 				runPipe(command)
-			} else if strings.Contains(command, ">>") {
+			} else if checkFor(command, ">>") {
 				runRedirect(command)
 			} else {
 				runCommand(command)
