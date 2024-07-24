@@ -64,6 +64,21 @@ func alias(command string) string {
 	}
 	return command
 }
+func cmdSplit(command string, splitKey string) []string {
+	split := []string{}
+	element := ""
+	for _, c := range command {
+		element += string(c)
+		if checkFor(element, splitKey) {
+			elementSplit := strings.Split(element, splitKey)
+			element = strings.Join(elementSplit[:len(elementSplit)-1], splitKey)
+			split = append(split, element)
+			element = ""
+		}
+	}
+	split = append(split, element)
+	return split
+}
 func checkFor(command string, keyword string) bool {
 	quotes := false
 	cmd := ""
@@ -242,7 +257,7 @@ func main() {
 			color.Red("couldn't get user input:")
 			color.Red(err.Error())
 		}
-		commands := strings.Split(command, "&&")
+		commands := cmdSplit(command, "&&")
 		for _, command := range commands {
 			command = strings.TrimSpace(command)
 			if checkCustom(command, "cd") {
