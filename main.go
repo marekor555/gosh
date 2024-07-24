@@ -257,6 +257,9 @@ func main() {
 			color.Red("couldn't get user input:")
 			color.Red(err.Error())
 		}
+		if strings.TrimSpace(command) == "" {
+			goto prompt
+		}
 		commands := cmdSplit(command, "&&")
 		for _, command := range commands {
 			command = strings.TrimSpace(command)
