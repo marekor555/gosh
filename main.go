@@ -21,7 +21,7 @@ import (
 	"github.com/fatih/color"
 )
 
-//go:embed .goshrc
+//go:embed goshrc
 var defaultGoshrc []byte
 
 var (
