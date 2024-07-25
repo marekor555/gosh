@@ -1,4 +1,7 @@
+# when using clear, add -x flag (it won't work otherwise)
 # use >>> to define alias
 # example:
-# cls>>>clear
+# cls>>>clear -x
 # copyit>>>xclip -selection clipboard
+# BUT multiple commands not yet supported:
+# cls>>>clear -x && ls -t
