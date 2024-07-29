@@ -47,6 +47,7 @@ func initCmd(command string, args []string) *exec.Cmd {
 	} else {
 		cmd = exec.Command(command, args...)
 	}
+	cmd.Dir = currentDir
 	cmd.Env = os.Environ()
 	return cmd
 }
@@ -119,7 +120,6 @@ func runCommand(command string) {
 	command = alias(command)
 	cmd, args := parseCmd(command)
 	cmdRunner := initCmd(cmd, args)
-	cmdRunner.Dir = currentDir
 	cmdRunner.Stdin = os.Stdin
 	cmdRunner.Stdout = os.Stdout
 	cmdRunner.Stderr = os.Stderr
@@ -190,6 +190,36 @@ func runPipe(command string) {
 		color.Red("Pipe command error: " + err.Error())
 	}
 }
+func loadConfig(homedir string, reader *bufio.Reader) {
+	file, err := os.Open(path.Join(homedir, ".goshrc"))
+	if err != nil {
+		color.Red("failed to open ~/.goshrc")
+		color.Red(err.Error())
+		color.Red("if config isn't initialzed, click enter to create default ~/.goshrc")
+		reader.ReadString('\n')
+		file.Close()
+		file, err := os.Create(path.Join(homedir, ".goshrc"))
+		if err != nil {
+			color.Red("failed to create ~/.goshrc")
+			color.Red(err.Error())
+		}
+		defer file.Close()
+		_, err = file.Write(defaultGoshrc)
+		if err != nil {
+			color.Red("failed to write to ~/.goshrc")
+			color.Red(err.Error())
+		}
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		if scanner.Text()[0] == '#' {
+			continue
+		}
+		splitText := strings.Split(scanner.Text(), ">>>")
+		aliases[splitText[0]] = splitText[1]
+	}
+}
 func main() {
 	color.Yellow(`
 	gosh  Copyright (C) 2024  MAREKOR555
@@ -213,34 +243,7 @@ func main() {
 		color.Red("couldn't get current user")
 		color.Red(err.Error())
 	}
-	file, err := os.Open(path.Join(user.HomeDir, ".goshrc"))
-	if err != nil {
-		color.Red("failed to open ~/.goshrc")
-		color.Red(err.Error())
-		color.Red("if config isn't initialzed, click enter to create default ~/.goshrc")
-		reader.ReadString('\n')
-		file.Close()
-		file, err := os.Create(path.Join(user.HomeDir, ".goshrc"))
-		if err != nil {
-			color.Red("failed to create ~/.goshrc")
-			color.Red(err.Error())
-		}
-		defer file.Close()
-		_, err = file.Write(defaultGoshrc)
-		if err != nil {
-			color.Red("failed to write to ~/.goshrc")
-			color.Red(err.Error())
-		}
-	}
-	defer file.Close()
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		if scanner.Text()[0] == '#' {
-			continue
-		}
-		splitText := strings.Split(scanner.Text(), ">>>")
-		aliases[splitText[0]] = splitText[1]
-	}
+	loadConfig(user.HomeDir, reader)
 	for {
 	prompt:
 		hi, mi, si := time.Now().Clock()
@@ -286,6 +289,11 @@ func main() {
 					goto prompt
 				}
 				currentDir = strings.Split(command, " ")[1]
+				goto prompt
+			}
+			if checkCustom(command, "reloadCfg") {
+				loadConfig(user.HomeDir, reader)
+				color.Green("Config reloaded")
 				goto prompt
 			}
 			if checkCustom(command, "shellPath") {
