@@ -307,6 +307,15 @@ func main() {
 				fmt.Println(currentDir)
 				goto prompt
 			}
+      if checkCustom(command, "help") {
+        color.Blue("list of built in custom commands")
+        color.Blue("help      - display help")
+        color.Blue("cd        - unix cd wasn't compatible, so it is a custom command")
+        color.Blue("reloadCfg - reloads config from ~/.goshrc")
+        color.Blue("shellPath - debug command to show shellPath variable (may be different than pwd)")
+        color.Blue("exit      - exit shell")
+        goto prompt
+      }
 			if checkCustom(command, "exit") {
 				os.Exit(0)
 			}
