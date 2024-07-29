@@ -288,7 +288,14 @@ func main() {
 					currentDir = user.HomeDir
 					goto prompt
 				}
-				currentDir = strings.Split(command, " ")[1]
+				if strings.Split(command, " ")[1][0] == '/' {
+					currentDir = strings.Split(command, " ")[1]
+					goto prompt
+				}
+				for _, dir := range strings.Split(strings.Split(command, " ")[1], "/") {
+					currentDir += "/" + dir
+				}
+				currentDir = strings.ReplaceAll(currentDir, "//", "/")
 				goto prompt
 			}
 			if checkCustom(command, "reloadCfg") {
