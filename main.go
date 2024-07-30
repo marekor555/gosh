@@ -267,35 +267,40 @@ func main() {
 		for _, command := range commands {
 			command = strings.TrimSpace(command)
 			if checkCustom(command, "cd") {
-				if len(strings.Split(command, " ")) <= 1 {
+				newCurrentDir := currentDir
+				if len(strings.Split(command, " ")) <= 1 { // if empty go to homedir
 					currentDir = user.HomeDir
 					goto prompt
 				}
-				if strings.Count(command, "..") > 0 {
+				currentDir = strings.ReplaceAll(currentDir, "~", user.HomeDir) // replace ~ with user.Homedir
+				if strings.Count(command, "..") > 0 {                          // check if there is .. and remove directories from path
 					backCount := strings.Count(command, "..")
-					currentDirSplit := strings.Split(currentDir, "/")
+					currentDirSplit := strings.Split(newCurrentDir, "/")
 					if backCount >= len(currentDirSplit) {
 						backCount = len(currentDirSplit) - 1
 					}
 					currentDirSplit = currentDirSplit[:len(currentDirSplit)-backCount]
-					currentDir = ""
+					newCurrentDir = ""
 					for _, dir := range currentDirSplit {
-						currentDir += "/" + dir
+						newCurrentDir += "/" + dir
 					}
-					goto prompt
 				}
-				if strings.Split(command, " ")[1] == "~" {
-					currentDir = user.HomeDir
-					goto prompt
-				}
-				if strings.Split(command, " ")[1][0] == '/' {
+				if strings.Split(command, " ")[1][0] == '/' { // if first char of path is / then use this path, it's absolute
 					currentDir = strings.Split(command, " ")[1]
 					goto prompt
 				}
-				for _, dir := range strings.Split(strings.Split(command, " ")[1], "/") {
-					currentDir += "/" + dir
+				for _, dir := range strings.Split(strings.Split(command, " ")[1], "/") { // add non relative path, and ignore .., it was replaced before
+					if dir == ".." {
+						continue
+					}
+					newCurrentDir += "/" + dir
 				}
-				currentDir = strings.ReplaceAll(currentDir, "//", "/")
+				newCurrentDir = strings.ReplaceAll(newCurrentDir, "//", "/") // replace // with / when if there is an error with that
+				if _, err := os.Stat(newCurrentDir); os.IsNotExist(err) {
+					color.Red("Error: path doesn't exist")
+					goto prompt
+				}
+				currentDir = newCurrentDir
 				goto prompt
 			}
 			if checkCustom(command, "reloadCfg") {
@@ -307,15 +312,15 @@ func main() {
 				fmt.Println(currentDir)
 				goto prompt
 			}
-      if checkCustom(command, "help") {
-        color.Blue("list of built in custom commands")
-        color.Blue("help      - display help")
-        color.Blue("cd        - unix cd wasn't compatible, so it is a custom command")
-        color.Blue("reloadCfg - reloads config from ~/.goshrc")
-        color.Blue("shellPath - debug command to show shellPath variable (may be different than pwd)")
-        color.Blue("exit      - exit shell")
-        goto prompt
-      }
+			if checkCustom(command, "help") {
+				color.Blue("list of built in custom commands")
+				color.Blue("help      - display help")
+				color.Blue("cd        - unix cd wasn't compatible, so it is a custom command")
+				color.Blue("reloadCfg - reloads config from ~/.goshrc")
+				color.Blue("shellPath - debug command to show shellPath variable (may be different than pwd)")
+				color.Blue("exit      - exit shell")
+				goto prompt
+			}
 			if checkCustom(command, "exit") {
 				os.Exit(0)
 			}
