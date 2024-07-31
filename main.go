@@ -31,27 +31,27 @@ var (
 	aliasesInt = map[string]string{"clear": "clear -x"}
 )
 
-func checkCustom(text string, command string) bool {
+func checkCustom(text string, command string) bool { // check for custom command
 	return strings.Contains(strings.Split(text, " ")[0], command)
 }
-func parseTime(time int) string {
+func parseTime(time int) string { // adds 0 if time is between 0 and 9
 	if time < 10 {
 		return "0" + strconv.Itoa(time)
 	}
 	return strconv.Itoa(time)
 }
 func initCmd(command string, args []string) *exec.Cmd {
-	var cmd *exec.Cmd
-	if len(args) == 0 {
+	var cmd *exec.Cmd 
+	if len(args) == 0 { // create command without args if len(args) is 0
 		cmd = exec.Command(command)
-	} else {
+	} else { // otherwise init with args
 		cmd = exec.Command(command, args...)
 	}
-	cmd.Dir = currentDir
-	cmd.Env = os.Environ()
+	cmd.Dir = currentDir // current dir is command's dir
+	cmd.Env = os.Environ() // enviromental variables are command's variables
 	return cmd
 }
-func alias(command string) string {
+func alias(command string) string { // replace aliases + internal quickfixes
 	commandSplit := strings.Fields(command)
 	for key, val := range aliases {
 		if commandSplit[0] == key {
@@ -83,7 +83,7 @@ func cmdSplit(command string, splitKey string) []string {
 func checkFor(command string, keyword string) bool {
 	quotes := false
 	cmd := ""
-	for _, c := range command {
+	for _, c := range command { // ignoring everything in quotes, it is not command
 		if c == '"' || c == '\'' {
 			quotes = !quotes
 		}
@@ -93,105 +93,105 @@ func checkFor(command string, keyword string) bool {
 	}
 	return strings.Contains(cmd, keyword)
 }
-func parseCmd(command string) (string, []string) {
-	cmd := ""
-	args := []string{}
-	commandSplit := strings.Fields(command)
-	cmd = commandSplit[0]
-	argsNP := strings.Join(commandSplit[1:], " ")
+func parseCmd(command string) (string, []string) { // just works
+	cmd := "" // command to be outputed
+	args := []string{} // arguments
+	commandSplit := strings.Fields(command) // split with spaces
+	cmd = commandSplit[0] // get command
+	argsNP := strings.Join(commandSplit[1:], " ") // other parts will be arguments
 	quotes := false
 	arg := ""
 	for _, c := range argsNP {
-		if c == '"' || c == '\'' {
-			quotes = !quotes
+		if c == '"' || c == '\'' { // quote toggle, it means 'hello" is valid quote, to be fixed
+			quotes = !quotes 
 			continue
 		}
-		if !quotes && c == ' ' {
+		if !quotes && c == ' ' { // if not in quotes and space, new argument is created
 			args = append(args, arg)
 			arg = ""
 			continue
 		}
-		arg += string(c)
+		arg += string(c) // add character to argument
 	}
-	args = append(args, arg)
+	args = append(args, arg) // append last argument
 	return cmd, args
 }
 func runCommand(command string) {
-	command = alias(command)
-	cmd, args := parseCmd(command)
-	cmdRunner := initCmd(cmd, args)
-	cmdRunner.Stdin = os.Stdin
+	command = alias(command) // alias command
+	cmd, args := parseCmd(command) // parse command
+	cmdRunner := initCmd(cmd, args) // init command
+	cmdRunner.Stdin = os.Stdin // make commands io be io of os
 	cmdRunner.Stdout = os.Stdout
 	cmdRunner.Stderr = os.Stderr
-	err = cmdRunner.Run()
+	err = cmdRunner.Run() // run command
 	if err != nil {
 		color.Red("Error: " + err.Error())
 	}
 }
 func runRedirect(command string) {
-	command = alias(command)
-	cmdSplit := cmdSplit(command, ">>")
-	if len(cmdSplit) != 2 {
+	command = alias(command) // alias command
+	cmdSplit := cmdSplit(command, ">>") // split between command and file
+	if len(cmdSplit) != 2 { // cannot redirect to more than two files
 		color.Red("ERROR: more than one >> detected")
 		return
 	}
-	cmd, args := parseCmd(cmdSplit[0])
-	file, err := os.Create(strings.TrimSpace(cmdSplit[1]))
+	cmd, args := parseCmd(cmdSplit[0]) // parse command
+	file, err := os.Create(strings.TrimSpace(cmdSplit[1])) // open file that will receive command stdout
 	if err != nil {
 		color.Red("Error: " + err.Error())
 		return
 	}
-	cmdRunner := initCmd(cmd, args)
-	cmdRunner.Stdout = file
-	err = cmdRunner.Run()
+	cmdRunner := initCmd(cmd, args) // initialize command
+	cmdRunner.Stdout = file // redirect command stdout to file
+	err = cmdRunner.Run() // start command and wait for finish
 	if err != nil {
 		color.Red("Error: " + err.Error())
 	}
 }
 func runPipe(command string) {
-	split := cmdSplit(command, "|")
+	split := cmdSplit(command, "|") // split between pipe and command beeing piped
 	if len(split) != 2 {
 		color.Red("ERROR: more than one | detected")
 		return
 	}
-	split[0] = alias(split[0])
-	split[1] = alias(split[1])
-	cmd, cmdArgs := parseCmd(split[0])
-	pipe, pipeArgs := parseCmd(split[1])
-	cmdRunner := initCmd(cmd, cmdArgs)
-	pipeRunner := initCmd(pipe, pipeArgs)
-	cmdRunner.Stderr = os.Stderr
-	pipeRunner.Stderr = os.Stderr
-	pipeRunner.Stdin, err = cmdRunner.StdoutPipe()
-	if err != nil {
+	split[0] = alias(split[0]) // alias command
+	split[1] = alias(split[1]) // alias pipe
+	cmd, cmdArgs := parseCmd(split[0]) // parse command
+	pipe, pipeArgs := parseCmd(split[1]) // parse pipe
+	cmdRunner := initCmd(cmd, cmdArgs) // init command
+	pipeRunner := initCmd(pipe, pipeArgs) // init pipe
+	cmdRunner.Stderr = os.Stderr // command err is os.Stderr
+	pipeRunner.Stderr = os.Stderr // pipe err is os.Stderr
+	pipeRunner.Stdin, err = cmdRunner.StdoutPipe() // redirect stdout of command to stdin of pipe
+	if err != nil { // check if piping failed
 		color.Red("couldn't pipe command")
 		color.Red(err.Error())
 		return
 	}
-	pipeRunner.Stdout = os.Stdout
-	err = cmdRunner.Start()
+	pipeRunner.Stdout = os.Stdout // stdout of pipe is os.Stdout 
+	err = cmdRunner.Start() // start command (and not wait)
 	if err != nil {
 		color.Red("failed to start command")
 		color.Red(err.Error())
 		return
 	}
-	err := pipeRunner.Start()
+	err := pipeRunner.Start() // start pipe (and not wait)
 	if err != nil {
 		color.Red("failed to start piping command")
 		color.Red(err.Error())
 		return
 	}
-	err = cmdRunner.Wait()
+	err = cmdRunner.Wait() // wait for end of command
 	if err != nil {
 		color.Red("Main command error: " + err.Error())
 	}
-	err = pipeRunner.Wait()
+	err = pipeRunner.Wait() // wait for end of pipe
 	if err != nil {
 		color.Red("Pipe command error: " + err.Error())
 	}
 }
 func loadConfig(homedir string, reader *bufio.Reader) {
-	file, err := os.Open(path.Join(homedir, ".goshrc"))
+	file, err := os.Open(path.Join(homedir, ".goshrc")) // open config file
 	if err != nil {
 		color.Red("failed to open ~/.goshrc")
 		color.Red(err.Error())
@@ -211,12 +211,12 @@ func loadConfig(homedir string, reader *bufio.Reader) {
 		}
 	}
 	defer file.Close()
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(file) // scan file
 	for scanner.Scan() {
-		if scanner.Text()[0] == '#' {
+		if scanner.Text()[0] == '#' { // comments start with #
 			continue
 		}
-		splitText := strings.Split(scanner.Text(), ">>>")
+		splitText := strings.Split(scanner.Text(), ">>>") // alias keyword: >>>
 		aliases[splitText[0]] = splitText[1]
 	}
 }
@@ -231,39 +231,39 @@ func main() {
 	if runtime.GOOS == "windows" {
 		color.Red("using gosh on windows isn't recommended, consider using powershell")
 	}
-	command := ""
-	reader := bufio.NewReader(os.Stdin)
-	currentDir, err = os.Getwd()
+	command := "" 
+	reader := bufio.NewReader(os.Stdin) // initialize reader for getting user input
+	currentDir, err = os.Getwd() // get current working directory
 	if err != nil {
 		color.Red("couldn't get working directory")
 		color.Red(err.Error())
 	}
-	user, err := user.Current()
+	user, err := user.Current() // get current user
 	if err != nil {
 		color.Red("couldn't get current user")
 		color.Red(err.Error())
 	}
-	loadConfig(user.HomeDir, reader)
+	loadConfig(user.HomeDir, reader) // load config 
 	for {
 	prompt:
-		hi, mi, si := time.Now().Clock()
+		hi, mi, si := time.Now().Clock() // parse time 
 		h := parseTime(hi)
 		m := parseTime(mi)
 		s := parseTime(si)
-		fmt.Print(
+		fmt.Print( // print prompt
 			color.CyanString(fmt.Sprintf("%v:%v:%v ", h, m, s)),
 			color.GreenString(user.Username),
 			color.BlueString(" >"), color.MagentaString(">"), color.BlueString("> "),
 		)
-		command, err = reader.ReadString('\n')
+		command, err = reader.ReadString('\n') // read user input
 		if err != nil {
 			color.Red("couldn't get user input:")
 			color.Red(err.Error())
 		}
-		if strings.TrimSpace(command) == "" {
+		if strings.TrimSpace(command) == "" { // if command contains only spaces or is empty, go to prompt
 			goto prompt
 		}
-		commands := cmdSplit(command, "&&")
+		commands := cmdSplit(command, "&&") // split input into commands
 		for _, command := range commands {
 			command = strings.TrimSpace(command)
 			if checkCustom(command, "cd") {
@@ -279,9 +279,9 @@ func main() {
 					if backCount >= len(currentDirSplit) {
 						backCount = len(currentDirSplit) - 1
 					}
-					currentDirSplit = currentDirSplit[:len(currentDirSplit)-backCount]
-					newCurrentDir = ""
-					for _, dir := range currentDirSplit {
+					currentDirSplit = currentDirSplit[:len(currentDirSplit)-backCount] // split path and ignore directories that should be deleted from path
+					newCurrentDir = "" // clear new current directory path
+					for _, dir := range currentDirSplit { // join the directories
 						newCurrentDir += "/" + dir
 					}
 				}
@@ -303,12 +303,12 @@ func main() {
 				currentDir = newCurrentDir
 				goto prompt
 			}
-			if checkCustom(command, "reloadCfg") {
+			if checkCustom(command, "reloadCfg") { // reload config command: reloadCfg
 				loadConfig(user.HomeDir, reader)
 				color.Green("Config reloaded")
 				goto prompt
 			}
-			if checkCustom(command, "shellPath") {
+			if checkCustom(command, "shellPath") { // for debuging, shows path as seen by shell
 				fmt.Println(currentDir)
 				goto prompt
 			}
@@ -324,7 +324,7 @@ func main() {
 			if checkCustom(command, "exit") {
 				os.Exit(0)
 			}
-			if runtime.GOOS == "windows" {
+			if runtime.GOOS == "windows" { // windows is supported in "layer mode" (just runs cmd)
 				command = alias(command)
 				cmd := exec.Command("cmd", "/c", command)
 				cmd.Stdin = os.Stdin
@@ -336,12 +336,12 @@ func main() {
 				}
 				goto prompt
 			}
-			if checkFor(command, "|") {
+			if checkFor(command, "|") { // pipe command
 				runPipe(command)
-			} else if checkFor(command, ">>") {
+			} else if checkFor(command, ">>") { // redirect command
 				runRedirect(command)
 			} else {
-				runCommand(command)
+				runCommand(command) // if no other command patterns match, it means that it is normal command
 			}
 		}
 	}
