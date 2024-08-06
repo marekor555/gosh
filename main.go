@@ -41,14 +41,15 @@ func parseTime(time int) string { // adds 0 if time is between 0 and 9
 	return strconv.Itoa(time)
 }
 func initCmd(command string, args []string) *exec.Cmd {
-	var cmd *exec.Cmd 
+	var cmd *exec.Cmd
 	if len(args) == 0 { // create command without args if len(args) is 0
 		cmd = exec.Command(command)
 	} else { // otherwise init with args
 		cmd = exec.Command(command, args...)
 	}
-	cmd.Dir = currentDir // current dir is command's dir
+	cmd.Dir = currentDir   // current dir is command's dir
 	cmd.Env = os.Environ() // enviromental variables are command's variables
+	cmd.Env = append(cmd.Env, "TERM=xterm-256color")
 	return cmd
 }
 func alias(command string) string { // replace aliases + internal quickfixes
@@ -94,16 +95,16 @@ func checkFor(command string, keyword string) bool {
 	return strings.Contains(cmd, keyword)
 }
 func parseCmd(command string) (string, []string) { // just works
-	cmd := "" // command to be outputed
-	args := []string{} // arguments
-	commandSplit := strings.Fields(command) // split with spaces
-	cmd = commandSplit[0] // get command
+	cmd := ""                                     // command to be outputed
+	args := []string{}                            // arguments
+	commandSplit := strings.Fields(command)       // split with spaces
+	cmd = commandSplit[0]                         // get command
 	argsNP := strings.Join(commandSplit[1:], " ") // other parts will be arguments
 	quotes := false
 	arg := ""
 	for _, c := range argsNP {
 		if c == '"' || c == '\'' { // quote toggle, it means 'hello" is valid quote, to be fixed
-			quotes = !quotes 
+			quotes = !quotes
 			continue
 		}
 		if !quotes && c == ' ' { // if not in quotes and space, new argument is created
@@ -117,10 +118,10 @@ func parseCmd(command string) (string, []string) { // just works
 	return cmd, args
 }
 func runCommand(command string) {
-	command = alias(command) // alias command
-	cmd, args := parseCmd(command) // parse command
+	command = alias(command)        // alias command
+	cmd, args := parseCmd(command)  // parse command
 	cmdRunner := initCmd(cmd, args) // init command
-	cmdRunner.Stdin = os.Stdin // make commands io be io of os
+	cmdRunner.Stdin = os.Stdin      // make commands io be io of os
 	cmdRunner.Stdout = os.Stdout
 	cmdRunner.Stderr = os.Stderr
 	err = cmdRunner.Run() // run command
@@ -129,21 +130,21 @@ func runCommand(command string) {
 	}
 }
 func runRedirect(command string) {
-	command = alias(command) // alias command
+	command = alias(command)            // alias command
 	cmdSplit := cmdSplit(command, ">>") // split between command and file
-	if len(cmdSplit) != 2 { // cannot redirect to more than two files
+	if len(cmdSplit) != 2 {             // cannot redirect to more than two files
 		color.Red("ERROR: more than one >> detected")
 		return
 	}
-	cmd, args := parseCmd(cmdSplit[0]) // parse command
+	cmd, args := parseCmd(cmdSplit[0])                     // parse command
 	file, err := os.Create(strings.TrimSpace(cmdSplit[1])) // open file that will receive command stdout
 	if err != nil {
 		color.Red("Error: " + err.Error())
 		return
 	}
 	cmdRunner := initCmd(cmd, args) // initialize command
-	cmdRunner.Stdout = file // redirect command stdout to file
-	err = cmdRunner.Run() // start command and wait for finish
+	cmdRunner.Stdout = file         // redirect command stdout to file
+	err = cmdRunner.Run()           // start command and wait for finish
 	if err != nil {
 		color.Red("Error: " + err.Error())
 	}
@@ -154,22 +155,22 @@ func runPipe(command string) {
 		color.Red("ERROR: more than one | detected")
 		return
 	}
-	split[0] = alias(split[0]) // alias command
-	split[1] = alias(split[1]) // alias pipe
-	cmd, cmdArgs := parseCmd(split[0]) // parse command
-	pipe, pipeArgs := parseCmd(split[1]) // parse pipe
-	cmdRunner := initCmd(cmd, cmdArgs) // init command
-	pipeRunner := initCmd(pipe, pipeArgs) // init pipe
-	cmdRunner.Stderr = os.Stderr // command err is os.Stderr
-	pipeRunner.Stderr = os.Stderr // pipe err is os.Stderr
+	split[0] = alias(split[0])                     // alias command
+	split[1] = alias(split[1])                     // alias pipe
+	cmd, cmdArgs := parseCmd(split[0])             // parse command
+	pipe, pipeArgs := parseCmd(split[1])           // parse pipe
+	cmdRunner := initCmd(cmd, cmdArgs)             // init command
+	pipeRunner := initCmd(pipe, pipeArgs)          // init pipe
+	cmdRunner.Stderr = os.Stderr                   // command err is os.Stderr
+	pipeRunner.Stderr = os.Stderr                  // pipe err is os.Stderr
 	pipeRunner.Stdin, err = cmdRunner.StdoutPipe() // redirect stdout of command to stdin of pipe
-	if err != nil { // check if piping failed
+	if err != nil {                                // check if piping failed
 		color.Red("couldn't pipe command")
 		color.Red(err.Error())
 		return
 	}
-	pipeRunner.Stdout = os.Stdout // stdout of pipe is os.Stdout 
-	err = cmdRunner.Start() // start command (and not wait)
+	pipeRunner.Stdout = os.Stdout // stdout of pipe is os.Stdout
+	err = cmdRunner.Start()       // start command (and not wait)
 	if err != nil {
 		color.Red("failed to start command")
 		color.Red(err.Error())
@@ -231,9 +232,9 @@ func main() {
 	if runtime.GOOS == "windows" {
 		color.Red("using gosh on windows isn't recommended, consider using powershell")
 	}
-	command := "" 
+	command := ""
 	reader := bufio.NewReader(os.Stdin) // initialize reader for getting user input
-	currentDir, err = os.Getwd() // get current working directory
+	currentDir, err = os.Getwd()        // get current working directory
 	if err != nil {
 		color.Red("couldn't get working directory")
 		color.Red(err.Error())
@@ -243,10 +244,10 @@ func main() {
 		color.Red("couldn't get current user")
 		color.Red(err.Error())
 	}
-	loadConfig(user.HomeDir, reader) // load config 
+	loadConfig(user.HomeDir, reader) // load config
 	for {
 	prompt:
-		hi, mi, si := time.Now().Clock() // parse time 
+		hi, mi, si := time.Now().Clock() // parse time
 		h := parseTime(hi)
 		m := parseTime(mi)
 		s := parseTime(si)
@@ -280,8 +281,8 @@ func main() {
 						backCount = len(currentDirSplit) - 1
 					}
 					currentDirSplit = currentDirSplit[:len(currentDirSplit)-backCount] // split path and ignore directories that should be deleted from path
-					newCurrentDir = "" // clear new current directory path
-					for _, dir := range currentDirSplit { // join the directories
+					newCurrentDir = ""                                                 // clear new current directory path
+					for _, dir := range currentDirSplit {                              // join the directories
 						newCurrentDir += "/" + dir
 					}
 				}
