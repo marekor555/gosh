@@ -230,7 +230,8 @@ func main() {
 
 `)
 	if runtime.GOOS == "windows" {
-		color.Red("using gosh on windows isn't recommended, consider using powershell")
+		color.Red("no, just no")
+		os.Exit(99)
 	}
 	command := ""
 	reader := bufio.NewReader(os.Stdin) // initialize reader for getting user input
@@ -324,18 +325,6 @@ func main() {
 			}
 			if checkCustom(command, "exit") {
 				os.Exit(0)
-			}
-			if runtime.GOOS == "windows" { // windows is supported in "layer mode" (just runs cmd)
-				command = alias(command)
-				cmd := exec.Command("cmd", "/c", command)
-				cmd.Stdin = os.Stdin
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				err = cmd.Run()
-				if err != nil {
-					color.Red("Error: " + err.Error())
-				}
-				goto prompt
 			}
 			if checkFor(command, "|") { // pipe command
 				runPipe(command)
