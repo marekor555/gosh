@@ -29,10 +29,11 @@ var (
 	err        error
 	aliases    = map[string]string{}
 	aliasesInt = map[string]string{"clear": "clear -x"}
+	lastDir    string
 )
 
 func checkCustom(text string, command string) bool { // check for custom command
-	return strings.Contains(strings.Split(text, " ")[0], command)
+	return strings.Split(text, " ")[0] == command
 }
 func parseTime(time int) string { // adds 0 if time is between 0 and 9
 	if time < 10 {
@@ -236,6 +237,7 @@ func main() {
 	command := ""
 	reader := bufio.NewReader(os.Stdin) // initialize reader for getting user input
 	currentDir, err = os.Getwd()        // get current working directory
+	lastDir = currentDir
 	if err != nil {
 		color.Red("couldn't get working directory")
 		color.Red(err.Error())
@@ -269,6 +271,7 @@ func main() {
 		for _, command := range commands {
 			command = strings.TrimSpace(command)
 			if checkCustom(command, "cd") {
+				lastDir = currentDir
 				newCurrentDir := currentDir
 				if len(strings.Split(command, " ")) <= 1 { // if empty go to homedir
 					currentDir = user.HomeDir
@@ -305,6 +308,10 @@ func main() {
 				currentDir = newCurrentDir
 				goto prompt
 			}
+			if checkCustom(command, "uncd") {
+				currentDir = lastDir
+				goto prompt
+			}
 			if checkCustom(command, "reloadCfg") { // reload config command: reloadCfg
 				loadConfig(user.HomeDir, reader)
 				color.Green("Config reloaded")
@@ -318,6 +325,7 @@ func main() {
 				color.Blue("list of built in custom commands")
 				color.Blue("help      - display help")
 				color.Blue("cd        - unix cd wasn't compatible, so it is a custom command")
+				color.Blue("uncd      - reverse last cd command")
 				color.Blue("reloadCfg - reloads config from ~/.goshrc")
 				color.Blue("shellPath - debug command to show shellPath variable (may be different than pwd)")
 				color.Blue("exit      - exit shell")
