@@ -80,7 +80,6 @@ func main() {
 	}()
 
 	for {
-	prompt:
 		hi, mi, si := time.Now().Clock() // parse time
 		h := parseTime(hi)
 		m := parseTime(mi)
@@ -96,17 +95,19 @@ func main() {
 			color.Red(err.Error())
 		}
 		if strings.TrimSpace(command) == "" { // if command contains only spaces or is empty, go to prompt
-			goto prompt
+			continue
 		}
 		commands := cmdSplit(command, "&&") // split input into commands
 		for _, command := range commands {
 			command = strings.TrimSpace(command)
-			if checkCustom(command, "cd") {
+
+			switch checkCustom(command) {
+			case "cd":
 				lastDir = currentDir
 				newCurrentDir := currentDir
 				if len(strings.Split(command, " ")) <= 1 { // if empty go to homedir
 					currentDir = user.HomeDir
-					goto prompt
+					break
 				}
 				currentDir = strings.ReplaceAll(currentDir, "~", user.HomeDir) // replace ~ with user.Homedir
 				if strings.Count(command, "..") > 0 {                          // check if there is .. and remove directories from path
@@ -123,7 +124,7 @@ func main() {
 				}
 				if strings.Split(command, " ")[1][0] == '/' { // if first char of path is / then use this path, it's absolute
 					currentDir = strings.Split(command, " ")[1]
-					goto prompt
+					break
 				}
 				for _, dir := range strings.Split(strings.Split(command, " ")[1], "/") { // add non relative path, and ignore .., it was replaced before
 					if dir == ".." {
@@ -134,25 +135,17 @@ func main() {
 				newCurrentDir = strings.ReplaceAll(newCurrentDir, "//", "/") // replace // with / when if there is an error with that
 				if _, err := os.Stat(newCurrentDir); os.IsNotExist(err) {
 					color.Red("Error: path doesn't exist")
-					goto prompt
+					break
 				}
 				currentDir = newCurrentDir
-				goto prompt
-			}
-			if checkCustom(command, "uncd") {
+			case "uncd":
 				currentDir = lastDir
-				goto prompt
-			}
-			if checkCustom(command, "reloadCfg") { // reload config command: reloadCfg
+			case "reloadCfg": // reload config command: reloadCfg
 				loadConfig(user.HomeDir, reader)
 				color.Green("Config reloaded")
-				goto prompt
-			}
-			if checkCustom(command, "shellPath") { // for debuging, shows path as seen by shell
+			case "shellPath": // for debuging, shows path as seen by shell
 				fmt.Println(currentDir)
-				goto prompt
-			}
-			if checkCustom(command, "help") {
+			case "help":
 				color.Blue("list of built in custom commands")
 				color.Blue("help      - display help")
 				color.Blue("cd        - unix cd wasn't compatible, so it is a custom command")
@@ -160,17 +153,16 @@ func main() {
 				color.Blue("reloadCfg - reloads config from ~/.goshrc")
 				color.Blue("shellPath - debug command to show shellPath variable (may be different than pwd)")
 				color.Blue("exit      - exit shell")
-				goto prompt
-			}
-			if checkCustom(command, "exit") {
+			case "exit":
 				os.Exit(0)
-			}
-			if checkFor(command, "|") { // pipe command
-				runPipe(command)
-			} else if checkFor(command, ">>") { // redirect command
-				runRedirect(command)
-			} else {
-				runCommand(command) // if no other command patterns match, it means that it is normal command
+			default:
+				if checkFor(command, "|") { // pipe command
+					runPipe(command)
+				} else if checkFor(command, ">>") { // redirect command
+					runRedirect(command)
+				} else {
+					runCommand(command) // if no other command patterns match, it means that it is normal command
+				}
 			}
 		}
 	}

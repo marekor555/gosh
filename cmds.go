@@ -10,8 +10,8 @@ import (
 	"github.com/fatih/color"
 )
 
-func checkCustom(text string, command string) bool { // check for custom command
-	return strings.Split(text, " ")[0] == command
+func checkCustom(text string) string { // check for custom command
+	return strings.Split(text, " ")[0]
 }
 
 func loadConfig(homedir string, reader *bufio.Reader) {
