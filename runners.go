@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"strings"
+	"syscall"
 
 	"github.com/fatih/color"
 )
@@ -23,8 +24,8 @@ func runRedirect(command string) {
 		return
 	}
 
-	cmdRunner := initCmd(cmd, args) // initialize command
-	cmdRunner.Stdout = file         // redirect command stdout to file
+	cmdRunner = initCmd(cmd, args) // initialize command
+	cmdRunner.Stdout = file        // redirect command stdout to file
 
 	err = cmdRunner.Run() // start command and wait for finish
 	if err != nil {
@@ -45,8 +46,8 @@ func runPipe(command string) {
 	cmd, cmdArgs := parseCmd(split[0])   // parse command
 	pipe, pipeArgs := parseCmd(split[1]) // parse pipe
 
-	cmdRunner := initCmd(cmd, cmdArgs)    // init command
-	pipeRunner := initCmd(pipe, pipeArgs) // init pipe
+	cmdRunner = initCmd(cmd, cmdArgs)    // init command
+	pipeRunner = initCmd(pipe, pipeArgs) // init pipe
 
 	cmdRunner.Stderr = os.Stderr  // command err is os.Stderr
 	pipeRunner.Stderr = os.Stderr // pipe err is os.Stderr
@@ -85,9 +86,11 @@ func runPipe(command string) {
 }
 
 func runCommand(command string) {
-	command = alias(command)        // alias command
-	cmd, args := parseCmd(command)  // parse command
-	cmdRunner := initCmd(cmd, args) // init command
+	command = alias(command)       // alias command
+	cmd, args := parseCmd(command) // parse command
+	cmdRunner = initCmd(cmd, args) // init command
+
+	cmdRunner.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	cmdRunner.Stdin = os.Stdin // make commands io be io of os
 	cmdRunner.Stdout = os.Stdout

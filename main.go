@@ -10,10 +10,13 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
+	"os/exec"
+	"os/signal"
 	"os/user"
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/fatih/color"
@@ -23,11 +26,12 @@ import (
 var defaultGoshrc []byte
 
 var (
-	currentDir string
-	err        error
-	aliases    = map[string]string{}
-	aliasesInt = map[string]string{"clear": "clear -x"}
-	lastDir    string
+	currentDir            string
+	err                   error
+	aliases               = map[string]string{}
+	aliasesInt            = map[string]string{"clear": "clear -x"}
+	lastDir               string
+	pipeRunner, cmdRunner *exec.Cmd
 )
 
 func parseTime(time int) string { // adds 0 if time is between 0 and 9
@@ -63,6 +67,18 @@ func main() {
 		color.Red(err.Error())
 	}
 	loadConfig(user.HomeDir, reader) // load config
+
+	osSig := make(chan os.Signal, 1)
+	signal.Notify(osSig, os.Interrupt)
+	signal.Notify(osSig, syscall.SIGTERM)
+	go func() {
+		for {
+			<-osSig
+			syscall.Kill(cmdRunner.Process.Pid, syscall.SIGKILL)
+			syscall.Kill(cmdRunner.Process.Pid, syscall.SIGKILL)
+		}
+	}()
+
 	for {
 	prompt:
 		hi, mi, si := time.Now().Clock() // parse time
