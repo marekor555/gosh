@@ -107,7 +107,7 @@ func checkFor(command string, keyword string) bool {
 	quotes := false
 	cmd := ""
 	for _, c := range command { // ignoring everything in quotes, it is not command
-		if c == '"' || c == '\'' {
+		if c == '"' {
 			quotes = !quotes
 		}
 
@@ -130,7 +130,7 @@ func parseCmd(command string) (string, []string) { // just works
 	arg := ""
 
 	for _, c := range argsNP {
-		if c == '"' || c == '\'' { // quote toggle, it means 'hello" is valid quote, to be fixed
+		if c == '"' { // quote toggle, it means 'hello" is valid quote, to be fixed
 			quotes = !quotes
 			continue
 		}
