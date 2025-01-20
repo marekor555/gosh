@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path"
 	"strings"
 	"syscall"
 
@@ -17,8 +18,8 @@ func runRedirect(command string) {
 		return
 	}
 
-	cmd, args := parseCmd(cmdSplit[0])                     // parse command
-	file, err := os.Create(strings.TrimSpace(cmdSplit[1])) // open file that will receive command stdout
+	cmd, args := parseCmd(cmdSplit[0])                                            // parse command
+	file, err := os.Create(path.Join(currentDir, strings.TrimSpace(cmdSplit[1]))) // open file that will receive command stdout
 	if err != nil {
 		color.Red("Error: " + err.Error())
 		return
