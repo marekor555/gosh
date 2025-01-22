@@ -84,11 +84,16 @@ func main() {
 		h := parseTime(hi)
 		m := parseTime(mi)
 		s := parseTime(si)
+		directories := strings.Split(currentDir, "/")
+		dirName := directories[len(directories)-1]
+		if dirName == "" {
+			dirName = "/"
+		}
 		fmt.Print( // print prompt
 			color.CyanString(fmt.Sprintf("%v:%v:%v ", h, m, s)),
 			color.GreenString(user.Username),
 			" at ",
-			color.GreenString(strings.Split(currentDir, "/")[len(strings.Split(currentDir, "/"))-1]),
+			color.GreenString(dirName),
 			color.BlueString(" >"), color.MagentaString(">"), color.BlueString("> "),
 		)
 		command, err = reader.ReadString('\n') // read user input
