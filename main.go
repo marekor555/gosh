@@ -26,12 +26,12 @@ import (
 var defaultGoshrc []byte
 
 var (
-	currentDir            string
-	err                   error
-	aliases               = map[string]string{}
-	aliasesInt            = map[string]string{"clear": "clear -x"}
-	lastDir               string
-	pipeRunner, cmdRunner *exec.Cmd
+	currentDir                          string
+	err                                 error
+	aliases                             = map[string]string{}
+	aliasesInt                          = map[string]string{"clear": "clear -x", "ls": "ls ."}
+	lastDir                             string
+	cmdRunner, pipeRunner, cmdRunnerRes *exec.Cmd
 )
 
 func parseTime(time int) string { // adds 0 if time is between 0 and 9
@@ -74,8 +74,15 @@ func main() {
 	go func() {
 		for {
 			<-osSig
-			syscall.Kill(cmdRunner.Process.Pid, syscall.SIGKILL)
-			syscall.Kill(cmdRunner.Process.Pid, syscall.SIGKILL)
+			if cmdRunner != nil {
+				cmdRunner.Process.Kill()
+			}
+			if pipeRunner != nil {
+				pipeRunner.Process.Kill()
+			}
+			if cmdRunnerRes != nil {
+				cmdRunnerRes.Process.Kill()
+			}
 		}
 	}()
 
@@ -167,6 +174,8 @@ func main() {
 					runPipe(command)
 				} else if checkFor(command, ">>") { // redirect command
 					runRedirect(command)
+				} else if checkFor(command, "<<") { // redirect command
+					runResult(command)
 				} else {
 					runCommand(command) // if no other command patterns match, it means that it is normal command
 				}

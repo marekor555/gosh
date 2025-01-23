@@ -32,6 +32,41 @@ func runRedirect(command string) {
 	if err != nil {
 		color.Red("Error: " + err.Error())
 	}
+	cmdRunner = nil
+}
+
+func runResult(command string) {
+	command = alias(command)
+	cmdSplit := cmdSplit(command, "<<")
+
+	if len(cmdSplit) != 2 {
+		color.Red("ERROR: more than one << detected")
+	}
+	cmd, args := parseCmd(cmdSplit[0])
+	cmdRes, argsRes := parseCmd(cmdSplit[1])
+
+	cmdRunnerRes = initCmd(cmdRes, argsRes)
+
+	output, err := cmdRunnerRes.Output()
+	if err != nil {
+		color.Red("Error: " + err.Error())
+	}
+
+	clean := strings.TrimSpace(string(output))
+	args = append(args, strings.Split(clean, "\n")...)
+
+	cmdRunner = initCmd(cmd, args)
+	cmdRunner.Stdout = os.Stdout
+	cmdRunner.Stderr = os.Stderr
+	cmdRunner.Stdin = os.Stdin
+
+	err = cmdRunner.Run()
+	if err != nil {
+		color.Red("Error: " + err.Error())
+	}
+
+	cmdRunner = nil
+	cmdRunnerRes = nil
 }
 
 func runPipe(command string) {
@@ -84,6 +119,9 @@ func runPipe(command string) {
 	if err != nil {
 		color.Red("Pipe command error: " + err.Error())
 	}
+
+	cmdRunner = nil
+	pipeRunner = nil
 }
 
 func runCommand(command string) {
@@ -101,4 +139,6 @@ func runCommand(command string) {
 	if err != nil {
 		color.Red("Error: " + err.Error())
 	}
+
+	cmdRunner = nil
 }
