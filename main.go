@@ -8,6 +8,7 @@ package main
 import (
 	"bufio"
 	_ "embed"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -32,6 +33,7 @@ var (
 	aliasesInt                          = map[string]string{"clear": "clear -x", "ls": "ls ."}
 	lastDir                             string
 	cmdRunner, pipeRunner, cmdRunnerRes *exec.Cmd
+	debug                               *bool
 )
 
 func parseTime(time int) string { // adds 0 if time is between 0 and 9
@@ -49,6 +51,8 @@ func main() {
 	YOU MUST CREDIT ME IF YOU USE THE PROGRAM OR ANY PARTS OF IT
 
 `)
+	debug = flag.Bool("debug", false, "run debug mode")
+	flag.Parse()
 	if runtime.GOOS == "windows" {
 		color.Red("no, just no")
 		os.Exit(99)
@@ -151,8 +155,10 @@ func main() {
 					color.Red("Error: path doesn't exist")
 					break
 				}
+				dbg_print("New dir is:", newCurrentDir)
 				currentDir = newCurrentDir
 			case "uncd":
+				dbg_print("Going back to: ", lastDir)
 				currentDir = lastDir
 			case "reloadCfg": // reload config command: reloadCfg
 				loadConfig(user.HomeDir, reader)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"os/exec"
 	"path"
@@ -39,6 +40,8 @@ func loadConfig(homedir string, reader *bufio.Reader) {
 		}
 	}
 	defer file.Close()
+	data, _ := os.ReadFile(path.Join(homedir, ".goshrc"))
+	dbg_print("Loading: \n", string(data))
 	scanner := bufio.NewScanner(file) // scan file
 
 	for scanner.Scan() {
@@ -53,7 +56,7 @@ func loadConfig(homedir string, reader *bufio.Reader) {
 func initCmd(command string, args []string) *exec.Cmd {
 	var cmd *exec.Cmd
 
-	if len(args) == 0 { // create command without args if len(args) is 0
+	if len(args) == 0 || (len(args) == 1 && args[0] == "") { // create command without args if len(args) is 0 or the only arg is empty
 		cmd = exec.Command(command)
 	} else { // otherwise init with args
 		cmd = exec.Command(command, args...)
@@ -62,6 +65,10 @@ func initCmd(command string, args []string) *exec.Cmd {
 	cmd.Dir = currentDir   // current dir is command's dir
 	cmd.Env = os.Environ() // enviromental variables are command's variables
 	cmd.Env = append(cmd.Env, "TERM=xterm-256color")
+
+	dbg_print("Cmd:         ", command)
+	dbg_print("Args amount: ", len(args))
+	dbg_print("Args:        ", args)
 
 	return cmd
 }
@@ -146,4 +153,11 @@ func parseCmd(command string) (string, []string) { // just works
 
 	args = append(args, arg) // append last argument
 	return cmd, args
+}
+
+func dbg_print(msg string, vars ...any) {
+	if *debug {
+		fmt.Print(color.RedString(msg))
+		fmt.Println(vars...)
+	}
 }
