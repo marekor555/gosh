@@ -21,17 +21,22 @@ func loadConfig(homedir string, reader *bufio.Reader) {
 	if err != nil {
 		color.Red("failed to open ~/.goshrc")
 		color.Red(err.Error())
-		color.Red("if config isn't initialzed, click enter to create default ~/.goshrc")
+		color.Red("if config isn't initialized, click enter to create default ~/.goshrc")
 
-		reader.ReadString('\n')
-		file.Close()
+		_, _ = reader.ReadString('\n')
+		err := file.Close()
+		if err != nil {
+			return
+		}
 
 		file, err := os.Create(path.Join(homedir, ".goshrc"))
 		if err != nil {
 			color.Red("failed to create ~/.goshrc")
 			color.Red(err.Error())
 		}
-		defer file.Close()
+		defer func() {
+			_ = file.Close()
+		}()
 
 		_, err = file.Write(defaultGoshrc)
 		if err != nil {
@@ -39,9 +44,11 @@ func loadConfig(homedir string, reader *bufio.Reader) {
 			color.Red(err.Error())
 		}
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 	data, _ := os.ReadFile(path.Join(homedir, ".goshrc"))
-	dbg_print("Loading: \n", string(data))
+	dbgPrint("Loading: \n", string(data))
 	scanner := bufio.NewScanner(file) // scan file
 
 	for scanner.Scan() {
@@ -63,12 +70,12 @@ func initCmd(command string, args []string) *exec.Cmd {
 	}
 
 	cmd.Dir = currentDir   // current dir is command's dir
-	cmd.Env = os.Environ() // enviromental variables are command's variables
+	cmd.Env = os.Environ() // environmental variables are command's variables
 	cmd.Env = append(cmd.Env, "TERM=xterm-256color")
 
-	dbg_print("Cmd:         ", command)
-	dbg_print("Args amount: ", len(args))
-	dbg_print("Args:        ", args)
+	dbgPrint("Cmd:         ", command)
+	dbgPrint("Args amount: ", len(args))
+	dbgPrint("Args:        ", args)
 
 	return cmd
 }
@@ -92,7 +99,7 @@ func alias(command string) string { // replace aliases + internal quickfixes
 }
 
 func cmdSplit(command string, splitKey string) []string {
-	split := []string{}
+	var split []string
 	element := ""
 
 	for _, c := range command {
@@ -127,8 +134,8 @@ func checkFor(command string, keyword string) bool {
 }
 
 func parseCmd(command string) (string, []string) { // just works
-	cmd := ""                                     // command to be outputed
-	args := []string{}                            // arguments
+	cmd := ""                                     // command to be outputted
+	var args []string                             // arguments
 	commandSplit := strings.Fields(command)       // split with spaces
 	cmd = commandSplit[0]                         // get command
 	argsNP := strings.Join(commandSplit[1:], " ") // other parts will be arguments
@@ -155,7 +162,7 @@ func parseCmd(command string) (string, []string) { // just works
 	return cmd, args
 }
 
-func dbg_print(msg string, vars ...any) {
+func dbgPrint(msg string, vars ...any) {
 	if *debug {
 		fmt.Print(color.RedString(msg))
 		fmt.Println(vars...)

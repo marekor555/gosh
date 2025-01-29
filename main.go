@@ -10,6 +10,7 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -65,12 +66,12 @@ func main() {
 		color.Red("couldn't get working directory")
 		color.Red(err.Error())
 	}
-	user, err := user.Current() // get current user
+	user_, err := user.Current() // get current user
 	if err != nil {
 		color.Red("couldn't get current user")
 		color.Red(err.Error())
 	}
-	loadConfig(user.HomeDir, reader) // load config
+	loadConfig(user_.HomeDir, reader) // load config
 
 	osSig := make(chan os.Signal, 1)
 	signal.Notify(osSig, os.Interrupt)
@@ -78,14 +79,18 @@ func main() {
 	go func() {
 		for {
 			<-osSig
+			var err error
 			if cmdRunner != nil {
-				cmdRunner.Process.Kill()
+				err = cmdRunner.Process.Kill()
 			}
 			if pipeRunner != nil {
-				pipeRunner.Process.Kill()
+				err = pipeRunner.Process.Kill()
 			}
 			if cmdRunnerRes != nil {
-				cmdRunnerRes.Process.Kill()
+				err = cmdRunnerRes.Process.Kill()
+			}
+			if err != nil {
+				log.Fatal(err.Error())
 			}
 		}
 	}()
@@ -102,7 +107,7 @@ func main() {
 		}
 		fmt.Print( // print prompt
 			color.CyanString(fmt.Sprintf("%v:%v:%v ", h, m, s)),
-			color.GreenString(user.Username),
+			color.GreenString(user_.Username),
 			" at ",
 			color.GreenString(dirName),
 			color.BlueString(" >"), color.MagentaString(">"), color.BlueString("> "),
@@ -124,11 +129,11 @@ func main() {
 				lastDir = currentDir
 				newCurrentDir := currentDir
 				if len(strings.Split(command, " ")) <= 1 { // if empty go to homedir
-					currentDir = user.HomeDir
+					currentDir = user_.HomeDir
 					break
 				}
-				currentDir = strings.ReplaceAll(currentDir, "~", user.HomeDir) // replace ~ with user.Homedir
-				if strings.Count(command, "..") > 0 {                          // check if there is .. and remove directories from path
+				currentDir = strings.ReplaceAll(currentDir, "~", user_.HomeDir) // replace ~ with user.Homedir
+				if strings.Count(command, "..") > 0 {                           // check if there is .. and remove directories from path
 					backCount := strings.Count(command, "..")
 					currentDirSplit := strings.Split(newCurrentDir, "/")
 					if backCount >= len(currentDirSplit) {
@@ -144,7 +149,7 @@ func main() {
 					currentDir = strings.Split(command, " ")[1]
 					break
 				}
-				for _, dir := range strings.Split(strings.Split(command, " ")[1], "/") { // add non relative path, and ignore .., it was replaced before
+				for _, dir := range strings.Split(strings.Split(command, " ")[1], "/") { // add non-relative path, and ignore .., it was replaced before
 					if dir == ".." {
 						continue
 					}
@@ -155,15 +160,15 @@ func main() {
 					color.Red("Error: path doesn't exist")
 					break
 				}
-				dbg_print("New dir is:", newCurrentDir)
+				dbgPrint("New dir is:", newCurrentDir)
 				currentDir = newCurrentDir
 			case "uncd":
-				dbg_print("Going back to: ", lastDir)
+				dbgPrint("Going back to: ", lastDir)
 				currentDir = lastDir
 			case "reloadCfg": // reload config command: reloadCfg
-				loadConfig(user.HomeDir, reader)
+				loadConfig(user_.HomeDir, reader)
 				color.Green("Config reloaded")
-			case "shellPath": // for debuging, shows path as seen by shell
+			case "shellPath": // for debugging, shows path as seen by shell
 				fmt.Println(currentDir)
 			case "help":
 				color.Blue("list of built in custom commands")

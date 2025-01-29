@@ -10,7 +10,7 @@ import (
 )
 
 func runRedirect(command string) {
-	dbg_print("Running file redirect command: ", command)
+	dbgPrint("Running file redirect command: ", command)
 	command = alias(command)            // alias command
 	cmdSplit := cmdSplit(command, ">>") // split between command and file
 
@@ -37,7 +37,7 @@ func runRedirect(command string) {
 }
 
 func runResult(command string) {
-	dbg_print("Running result redirect command: ", command)
+	dbgPrint("Running result redirect command: ", command)
 	command = alias(command)
 	cmdSplit := cmdSplit(command, "<<")
 
@@ -72,8 +72,8 @@ func runResult(command string) {
 }
 
 func runPipe(command string) {
-	dbg_print("Running piped command: ", command)
-	split := cmdSplit(command, "|") // split between pipe and command beeing piped
+	dbgPrint("Running piped command: ", command)
+	split := cmdSplit(command, "|") // split between pipe and command being piped
 	if len(split) != 2 {
 		color.Red("ERROR: more than one | detected")
 		return
@@ -128,7 +128,7 @@ func runPipe(command string) {
 }
 
 func runCommand(command string) {
-	dbg_print("Running: ", command)
+	dbgPrint("Running: ", command)
 	command = alias(command)       // alias command
 	cmd, args := parseCmd(command) // parse command
 	cmdRunner = initCmd(cmd, args) // init command
